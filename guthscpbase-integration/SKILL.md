@@ -48,17 +48,26 @@ Wait for confirmation before writing any code.
 
 Once the user has confirmed the list, implement both pieces in parallel:
 1. Update (or create) `config.lua` as the canonical fallback
-2. Create the guthscpbase integration file
+2. Create the guthscpbase module file
 
 ---
 
 ## File Layout
 
+The correct integration method is the **module system** — place a `main.lua` inside guthscpbase's modules folder. Do NOT use `guthscp.config.add` from an autorun file; the module system is the supported path and is the only one that shows in the panel.
+
 ```
-myaddon/lua/autorun/
-├── sh_config.lua          ← fallback config (always present)
-└── sh_guthscp_config.lua  ← guthscpbase integration (guarded by if guthscp)
+myaddon/
+├── lua/
+│   ├── autorun/
+│   │   └── sh_config.lua              ← fallback config (always present)
+│   └── guthscp/
+│       └── modules/
+│           └── <module_id>/
+│               └── main.lua           ← guthscpbase module entry point
 ```
+
+The `<module_id>` must match the folder name exactly — guthscpbase uses it as the config ID.
 
 If the addon already has a `config.lua` or `sh_config.lua`, update it in place rather than creating a duplicate.
 
@@ -82,99 +91,94 @@ MYADDON_CONFIG = MYADDON_CONFIG or {}
 MYADDON_CONFIG.enabled     = true
 MYADDON_CONFIG.damage      = 50
 MYADDON_CONFIG.color       = Color(255, 100, 50)
-MYADDON_CONFIG.allowed_jobs = { ["TEAM_GUARD"] = true }
+MYADDON_CONFIG.allowed_jobs = {}
 ```
 
 Keep it simple — one value per line, no functions. Admins should be able to edit this without knowing Lua.
 
 ---
 
-## guthscpbase integration file
+## guthscpbase module file
 
 ```lua
--- sh_guthscp_config.lua
+-- lua/guthscp/modules/myaddon/main.lua
 
--- If guthscpbase isn't installed, silently skip.
--- The fallback sh_config.lua handles the defaults.
-if not guthscp then return end
-
-local ID = "myaddon"   -- unique ID for this addon's config block
-
--- ── Shared registration (both realms call this) ─────────────────
-local FORM = {
-    { type = "Category", name = "General" },
-    {
-        type    = "Bool",
-        id      = "enabled",
-        name    = "Enable Addon",
-        default = true,
+local MODULE = {
+    name        = "My Addon",
+    author      = "Me",
+    version     = "1.0.0",
+    description = "Short description shown in the guthscpbase menu.",
+    icon        = "icon16/brick.png",   -- 16x16 Silkicon or custom material
+    dependencies = {
+        base = "2.0.0",   -- minimum compatible guthscpbase version
     },
-    {
-        type    = "Number",
-        id      = "damage",
-        name    = "Damage",
-        default = 50,
-        min     = 0,
-        max     = 500,
-    },
-    { type = "Category", name = "Appearance" },
-    {
-        type    = "Color",
-        id      = "color",
-        name    = "UI Color",
-        default = Color(255, 100, 50),
-    },
-    { type = "Category", name = "Access" },
-    {
-        type    = "Teams",
-        id      = "allowed_jobs",
-        name    = "Allowed Jobs",
-        default = {},
+    menu = {
+        config = {
+            form = {
+                -- Categories are plain strings.
+                -- Fields are tables nested ONE level inside a table group.
+                "General",
+                {
+                    {
+                        type    = "Bool",
+                        id      = "enabled",
+                        name    = "Enable Addon",
+                        desc    = "Optional tooltip shown on hover.",
+                        default = true,
+                    },
+                    {
+                        type    = "Number",
+                        id      = "damage",
+                        name    = "Damage",
+                        default = 50,
+                        min     = 0,
+                        max     = 500,
+                    },
+                },
+                "Access",
+                {
+                    {
+                        type    = "String[]",
+                        id      = "allowed_jobs",
+                        name    = "Allowed Jobs",
+                        default = {},
+                    },
+                },
+            },
+        },
     },
 }
 
--- ── Server registration ──────────────────────────────────────────
-if SERVER then
-    guthscp.config.add(ID, {
-        form    = FORM,
-        receive = function(config)
-            -- Called when an admin saves the config in-game.
-            -- Mirror the values back into MYADDON_CONFIG so the
-            -- rest of the addon doesn't need to know about guthscp.
-            for k, v in pairs(config) do
-                MYADDON_CONFIG[k] = v
-            end
-        end,
-        parse = function(config)
-            -- Optional: post-process or validate after load/apply.
-        end,
-    })
+-- Sync guthscpbase values back into MYADDON_CONFIG whenever config is applied.
+-- This keeps the rest of the addon unaware of guthscpbase.
+hook.Add("guthscp.config:applied", "myaddon.sync_config", function(id, config)
+    if id ~= "myaddon" then return end
+    for k, v in pairs(config) do
+        MYADDON_CONFIG[k] = v
+    end
+end)
 
-    -- Also sync to MYADDON_CONFIG on initial load / config:applied
-    hook.Add("guthscp.config:applied", "myaddon.sync_config", function(id, config)
-        if id ~= ID then return end
-        for k, v in pairs(config) do
-            MYADDON_CONFIG[k] = v
-        end
-    end)
-end
-
--- ── Client registration ──────────────────────────────────────────
-if CLIENT then
-    guthscp.config.add(ID, {
-        form = FORM,
-    })
-
-    hook.Add("guthscp.config:applied", "myaddon.sync_config", function(id, config)
-        if id ~= ID then return end
-        for k, v in pairs(config) do
-            MYADDON_CONFIG[k] = v
-        end
-    end)
-end
+-- Enable hot-reload during development: save main.lua in-game to reload.
+guthscp.module.hot_reload("myaddon")
+return MODULE
 ```
 
-The `receive` + `hook.Add("guthscp.config:applied")` pattern keeps `MYADDON_CONFIG` as the single source of truth everywhere else in the addon — no code outside this file needs to know about `guthscp.configs`.
+### Critical FORM structure rules
+
+1. **Categories** are bare strings — `"General"`, not `{ type = "Category", name = "General" }`.
+2. **Fields** must be **double-nested**: a group table containing field tables.
+   ```lua
+   -- CORRECT
+   "My Category",
+   {
+       { type = "Bool", id = "foo", name = "Foo", default = true },
+       { type = "Number", id = "bar", name = "Bar", default = 5 },
+   },
+
+   -- WRONG — fields at top level don't render
+   { type = "Bool", id = "foo", name = "Foo", default = true },
+   ```
+3. Multiple fields in the same group appear side-by-side in the panel.
 
 ---
 
@@ -190,13 +194,14 @@ The `receive` + `hook.Add("guthscp.config:applied")` pattern keeps `MYADDON_CONF
 | `Vector` | 3-axis input | `Vector(x,y,z)` | `default` |
 | `Angle` | 3-axis input | `Angle(p,y,r)` | `default` |
 | `Enum` | Dropdown | numeric | `enum = {NAME=1,...}`, `default` |
-| `ComboBox` | Dropdown | string/data | `choice = {{label=..., data=...}}` |
+| `ComboBox` | Dropdown | string/data | `choice = {{label=..., data=...}}`, `default` |
 | `Team` | Job picker | team keyname string | `default = "TEAM_NIL"` |
 | `Teams` | Job checkboxes | `{KEYNAME=true,...}` | `default = {}` |
 | `InputKey` | Key binder | key code number | `default = KEY_E` |
-| `Category` | Section header | — | `name` only |
 | `Label` | Static text | — | `name` only |
 | `Button` | Button | — | `name`, `action = function(form) end` |
+
+All field tables support an optional `desc` string for tooltip text.
 
 ---
 
@@ -208,19 +213,18 @@ Always read from `MYADDON_CONFIG`, never from `guthscp.configs` directly:
 -- Anywhere in the addon (server or client):
 if MYADDON_CONFIG.enabled then
     local dmg = MYADDON_CONFIG.damage
-    -- ...
 end
 ```
 
 This works whether guthscpbase is installed or not, because:
 - Without guthscpbase: `sh_config.lua` populates `MYADDON_CONFIG`
-- With guthscpbase: the `receive`/`applied` hook keeps `MYADDON_CONFIG` in sync
+- With guthscpbase: the `guthscp.config:applied` hook keeps `MYADDON_CONFIG` in sync
 
 ---
 
-## Load order note
+## Load order
 
-`sh_config.lua` must load before `sh_guthscp_config.lua`. Since GMod autoloads `autorun/` files alphabetically, naming them with `sh_` prefix ensures this. If the addon uses a manual loader, include `sh_config.lua` first.
+`sh_config.lua` (in `lua/autorun/`) loads before guthscpbase initializes its modules, so defaults are always in place before `guthscp.config:applied` fires.
 
 ---
 
@@ -231,7 +235,13 @@ guthscpbase        (console command — opens config menu)
 guthscp_menu       (alias)
 ```
 
-Superadmin-only. Config changes are saved automatically to `data/guthscp/configs/<id>.json` and broadcast to all connected clients.
+Superadmin-only. Config changes are saved to `data/guthscp/configs/<id>.json` and broadcast to all connected clients.
+
+---
+
+## Hot-reload during development
+
+Call `guthscp.module.hot_reload("<module_id>")` before `return MODULE`. Then save `main.lua` from your editor while in-game — guthscpbase reloads the entire module automatically without a server restart.
 
 ---
 
