@@ -15,6 +15,15 @@
         },
         "source": "./sam-addon-integration",
         "category": "development"
+      },
+      {
+        "name": "cns-reborn-integration",
+        "description": "CNS Reborn notification system skill for Garry's Mod addon development",
+        "author": {
+          "name": "DiToXy"
+        },
+        "source": "./cns-reborn-integration",
+        "category": "development"
       }
     ]
   }
