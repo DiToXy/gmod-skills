@@ -1,0 +1,20 @@
+{
+    "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",                      
+    "name": "gmod-skills",
+    "description": "Garry's Mod GLua skills for Claude Code",
+    "owner": {
+      "name": "DiToXy",
+      "email": "ditoxsurytb@gmail.com"
+    },
+    "plugins": [
+      {
+        "name": "sam-addon-integration",
+        "description": "SAM admin system integration skill for Garry's Mod addon development",
+        "author": {
+          "name": "DiToXy"
+        },
+        "source": "./sam-addon-integration",
+        "category": "development"
+      }
+    ]
+  }
