@@ -1,5 +1,5 @@
 ## Install
 
 ```
-/plugin install DiToX/gmod-skills
+/plugin install DiToXy/gmod-skills
 ```
