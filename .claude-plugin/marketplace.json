@@ -24,6 +24,15 @@
         },
         "source": "./cns-reborn-integration",
         "category": "development"
+      },
+      {
+        "name": "guthscpbase-integration",
+        "description": "Skill for making Garry's Mod addons configurable in-game via the guthscpbase VGUI config panel, with fallback config.lua support",
+        "author": {
+          "name": "DiToXy"
+        },
+        "source": "./guthscpbase-integration",
+        "category": "development"
       }
     ]
   }
