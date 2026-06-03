@@ -194,7 +194,7 @@ return MODULE
 | `Vector` | 3-axis input | `Vector(x,y,z)` | `default` |
 | `Angle` | 3-axis input | `Angle(p,y,r)` | `default` |
 | `Enum` | Dropdown | numeric | `enum = {NAME=1,...}`, `default` |
-| `ComboBox` | Dropdown | string/data | `choice = {{label=..., data=...}}`, `default` |
+| `ComboBox` | Dropdown | string | `choice = {{value=...}, ...}`, `default` must equal a `value` |
 | `Team` | Job picker | team keyname string | `default = "TEAM_NIL"` |
 | `Teams` | Job checkboxes | `{KEYNAME=true,...}` | `default = {}` |
 | `InputKey` | Key binder | key code number | `default = KEY_E` |
