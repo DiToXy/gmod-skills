@@ -1,5 +1,5 @@
 ## Install
 
 ```
-/plugin install DiToX/sam-addon-integration
+/plugin install DiToX/gmod-skills
 ```
