@@ -42,6 +42,15 @@
         },
         "source": "./load-order-management",
         "category": "development"
+      },
+      {
+        "name": "rebornui-development-guide",
+        "description": "How to build Garry's Mod GLua UI with the RebornUI shared VGUI library — themed Derma components, primitives, the theme/override system, and IMGUI-backed world-space 3D2D surfaces",
+        "author": {
+          "name": "DiToXy"
+        },
+        "source": "./rebornui-development-guide",
+        "category": "development"
       }
     ]
   }
