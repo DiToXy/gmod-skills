@@ -33,6 +33,15 @@
         },
         "source": "./guthscpbase-integration",
         "category": "development"
+      },
+      {
+        "name": "load-order-management",
+        "description": "Deterministic GLua load order for Garry's Mod addons and shared libraries — a self-contained realm-aware loader, ready flag + ready hook, your own modules extension folder, and file-scope capture pitfalls",
+        "author": {
+          "name": "DiToXy"
+        },
+        "source": "./load-order-management",
+        "category": "development"
       }
     ]
   }
